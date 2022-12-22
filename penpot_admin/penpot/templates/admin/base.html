@@ -1,0 +1,32 @@
+{% extends 'admin/base.html' %}
+
+{% block extrastyle %}{{ block.super }}
+  <style>
+   :root {
+     /* --primary: #9774d5; */
+     /* --secondary: #785cab; */
+     --link-fg: #303236;
+     --link-selected-fg: #303236;
+     --primary: #303236;
+     --secondary: #303236;
+     --accent: #ffffff;
+     --selected-row: #DDDDDD;
+     --breadcrumbs-fg: #31efb8;
+     /* --header-link-color: #31efb8; */
+     --header-link-color: #ffffff;
+     --header-color: #31efb8;
+     /* --header-color: #ffffff; */
+     --button-bg: #31efb8;
+     --button-fg: #000000;
+     --button-hover-bg: #31efb8;
+     --default-button-bg: #31efb8;
+     --default-button-fg: #000000;
+     --default-button-hover-bg: #31efb8;
+     --delete-button-bg: #ba4237;
+     --delete-button-fg: #ffffff;
+   }
+   .submit-row a.deletelink {
+     color: var(--delete-button-fg) !important;
+   }
+  </style>
+{% endblock %}
