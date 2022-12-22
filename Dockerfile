@@ -1,6 +1,6 @@
 ## BUILD STAGE 1
 
-FROM ubuntu:22.04 as venv-build
+FROM ubuntu:22.04 as stage0
 
 WORKDIR /opt/
 
@@ -57,7 +57,7 @@ RUN set -ex; \
 
 ## BUILD STAGE 2
 
-FROM ubuntu:22.04
+FROM ubuntu:22.04 as stage1
 LABEL maintainer="Andrey Antukh <niwi@niwi.nz>"
 
 WORKDIR /opt/
@@ -71,7 +71,7 @@ ENV PYENV_ROOT=/opt/pyenv \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1
 
-COPY --from=venv-build /opt /opt
+COPY --from=stage0 /opt /opt
 COPY ./run.sh /run.sh
 
 RUN set -ex; \
