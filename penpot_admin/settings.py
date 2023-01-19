@@ -4,7 +4,7 @@ from pathlib import Path
 env = environ.Env()
 env.prefix = "PENPOT_"
 
-DEBUG = env.bool("DEBUG", False)
+DEBUG = env.bool("DEBUG", True)
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = env.str("SECRET_KEY", "django-insecure-hz0vq%q6tkxey&ofaco)=_h)=qr!t62hjo00s3erfav(bg(wlb")
@@ -28,8 +28,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "penpot_admin.core.PenpotMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware"
 ]
 
 CACHES = {
@@ -68,7 +67,10 @@ DATABASES = {
         "USER": env.str("DATABASE_USERNAME", "penpot"),
         "PASSWORD": env.str("DATABASE_PASSWORD", "penpot"),
         "HOST": env.str("DATABASE_HOST", "postgres"),
-        "PORT": env.str("DATABASE_PORT", "5432")
+        "PORT": env.str("DATABASE_PORT", "5432"),
+        "OPTIONS": {
+            "options": "-c search_path=public"
+        }
     }
 }
 
@@ -76,10 +78,7 @@ AUTH_PASSWORD_VALIDATORS = []
 
 PUBLIC_URI = env.str("PUBLIC_URI", "http://localhost:3449")
 API_URI = env.str("API_URI", "http://localhost:6060")
-
-AUTHENTICATION_BACKENDS = [
-    "penpot_admin.auth.PenpotBackend"
-]
+PREPL_URI = env.str("PREPL_URI", "tcp://localhost:6063")
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -90,4 +89,3 @@ STATIC_URL = "admin/static/"
 STATIC_ROOT = BASE_DIR / "static"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-AUTH_USER_MODEL = "penpot.Profile"

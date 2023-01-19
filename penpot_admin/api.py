@@ -1,82 +1,47 @@
+import socket
+import json
 import httpx as http
 
+from urllib.parse import urlparse
 from django.core.exceptions import BadRequest
-from django.contrib.auth import get_user_model
 from django.conf import settings
 
-def get_api_uri():
-    api_uri = settings.API_URI
+def _eval(expr):
+    uri_data = urlparse(settings.PREPL_URI)
+    if uri_data.scheme != "tcp":
+        raise BadRequest(f"invalid PREPL_URI: {settings.PREPL_URI}")
 
-    if not api_uri.endswith("/"):
-        api_uri = api_uri + "/"
+    if not isinstance(uri_data.netloc, str):
+        raise BadRequest(f"invalid PREPL_URI: {settings.PREPL_URI}")
 
-    return api_uri
+    host, port = uri_data.netloc.split(":", 2)
 
-def resolve_uri(path):
-    return f"{get_api_uri()}{path}"
+    if port is None:
+        port = 6063
 
+    if isinstance(port, str):
+        port = int(port)
 
-DEFAULT_HEADERS = {
-    "accept": "application/json",
-    "content-type": "application/json"
-}
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((host, port))
+        s.send(expr.encode("utf-8"))
 
-import traceback
+        with s.makefile() as f:
+            data = f.readline()
+            result = json.loads(data)
+            return result["val"]
 
-def authenticate(username, password):
-    user_model = get_user_model()
+def derive_password_hash(password):
+    expr = "(app.srepl.ext/derive-password {})\n".format(
+        json.dumps(password)
+    )
+    return _eval(expr)
 
-    url = resolve_uri("api/rpc/command/login-with-password")
-    data = {
-        "email": username,
-        "password": password,
-        "scope": "admin"
-    }
+def create_profile(fullname, email, password):
+    expr = "(app.srepl.ext/create-profile {}, {}, {})".format(
+        json.dumps(fullname),
+        json.dumps(email),
+        json.dumps(password)
+    )
+    return _eval(expr)
 
-    response = http.post(url, json=data, headers=DEFAULT_HEADERS)
-    if response.status_code == 200:
-        token = response.cookies.get("auth-token")
-        data = response.json()
-
-        if data.get("isAdmin", False) and token:
-            user = user_model._default_manager.get_by_natural_key(username)
-            return user, token
-
-    return None, None
-
-def check_password(token, profile_id, password):
-    params = {
-        "profileId": str(profile_id),
-        "password": password
-    }
-
-    cookies = {
-        "auth-token": token
-    }
-
-    url = resolve_uri("api/rpc/command/check-profile-password")
-    response = http.post(url, json=params, cookies=cookies, headers=DEFAULT_HEADERS)
-    if response.status_code != 200:
-        raise BadRequest("unable to check password")
-
-    data = response.json();
-    return data["valid"]
-
-
-def get_password_hash(token, profile_id, password):
-    params = {
-        "profileId": str(profile_id),
-        "password": password
-    }
-
-    cookies = {
-        "auth-token": token
-    }
-
-    url = resolve_uri("api/rpc/command/get-derived-password")
-    response = http.post(url, json=params, cookies=cookies, headers=DEFAULT_HEADERS)
-    if response.status_code != 200:
-        raise BadRequest("unable to get password hash")
-
-    data = response.json();
-    return data["password"]

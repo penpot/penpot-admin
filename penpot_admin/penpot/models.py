@@ -295,7 +295,6 @@ class Profile(models.Model):
     is_muted = models.BooleanField(blank=True, null=True)
     auth_backend = models.TextField(blank=True, null=True)
     is_blocked = models.BooleanField(blank=True, null=True)
-    is_admin = models.BooleanField(blank=True, null=True)
 
     objects = ProfileManager()
 
@@ -311,63 +310,19 @@ class Profile(models.Model):
     def __str__(self):
         return self.email
 
-    def has_perm(self, perm, obj=None):
-        "Does the user have a specific permission?"
-        # Simplest possible answer: Yes, always
-        return True
-
-    def has_module_perms(self, app_label):
-        "Does the user have permissions to view the app `app_label`?"
-        # Simplest possible answer: Yes, always
-        return True
-
     def get_username(self):
         return self.email
 
     def natural_key(self):
         return (self.get_username(),)
 
-    @property
-    def last_login(self):
-        return self.updated_at
-
-    @property
-    def is_anonymous(self):
-        return False
-
-    @property
-    def is_authenticated(self):
-        return True
-
-    def has_usable_password(self):
-        return is_password_usable(self.password)
-
-    @property
-    def is_staff(self):
-        return True
-
     def set_password(self, raw_password):
-        from penpot_admin import core
         from penpot_admin import api
+        print("raw password:", raw_password)
 
-        session = core.get_current_session()
-        if not session:
-            raise NotImplementedError("session not found for current request")
-
-        token = session["auth-token"]
-        password = api.get_password_hash(token, self.id, raw_password)
+        password = api.derive_password_hash(raw_password)
+        print("derive_password:", password)
         self.password = password
-
-    def check_password(self, raw_password):
-        from penpot_admin import core
-        from penpot_admin import api
-
-        session = core.get_current_session()
-        if not session:
-            raise NotImplementedError("session not found for current request")
-
-        token = session["auth-token"]
-        return api.check_password(token, self.id, raw_password)
 
 
 # class ProfileComplaintReport(models.Model):

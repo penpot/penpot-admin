@@ -7,10 +7,13 @@ from django.db.models import Count
 
 from django import forms
 from django.contrib import admin
-from django.contrib.auth.models import Group
-from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.contrib.auth.models import Group, User
+from django.contrib.auth.admin import UserAdmin, GroupAdmin
 from django.core.exceptions import ValidationError
+from django.core.exceptions import BadRequest
+
+# from django.contrib.contenttypes.models import ContentType
+
 
 from penpot_admin import api
 from penpot_admin.penpot import models
@@ -23,7 +26,8 @@ class PenpotAdminSite(admin.AdminSite):
 
 admin_site = PenpotAdminSite(name="penpot")
 admin_site.disable_action("delete_selected")
-
+admin_site.register(User, UserAdmin)
+admin_site.register(Group, GroupAdmin)
 
 ## --- HELPERS
 
@@ -55,10 +59,14 @@ class ProfileCreationForm(forms.ModelForm):
 
     def save(self, commit=True):
         profile = super().save(commit=False)
-        profile.set_password(self.cleaned_data["password1"])
-        if commit:
-            profile.save()
-        return profile
+        profile_id = api.create_profile(self.cleaned_data["fullname"],
+                                        self.cleaned_data["email"],
+                                        self.cleaned_data["password1"])
+        if profile_id is None:
+            raise BadRequest("PREPL server not configured")
+
+        profile_id = uuid.UUID(profile_id)
+        return models.Profile.objects.get(pk=profile_id)
 
 class ProfileChangeForm(forms.ModelForm):
     email = forms.EmailField(label="Email")
@@ -87,11 +95,11 @@ def mark_deleted(madmin, request, queryset):
 def mark_restored(madmin, request, queryset):
     queryset.update(deleted_at=None)
 
-class ProfileAdmin(BaseUserAdmin):
+class ProfileAdmin(UserAdmin):
     form = ProfileChangeForm
     add_form = ProfileCreationForm
-    list_display = ("email", "fullname", "is_active", "is_admin", "created_at", "deleted_at",)
-    list_filter = ("is_admin", "is_muted", "is_blocked", "deleted_at")
+    list_display = ("email", "fullname", "is_active", "created_at", "deleted_at",)
+    list_filter = ("is_muted", "is_blocked", "deleted_at")
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Personal info", {"fields": ("fullname","lang", )}),
@@ -100,8 +108,7 @@ class ProfileAdmin(BaseUserAdmin):
                                  "deleted_at",
                                  "props",
                                  )}),
-        ("Permissions", {"fields": ("is_admin",
-                                    "is_active",
+        ("Permissions", {"fields": ("is_active",
                                     "is_blocked",
                                     "is_muted",
                                     "is_demo",)}),
