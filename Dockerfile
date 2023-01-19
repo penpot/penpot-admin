@@ -88,7 +88,7 @@ RUN set -ex; \
     locale-gen; \
     rm -rf /var/lib/apt/lists/*;
 
-EXPOSE 6063
+EXPOSE 6065
 USER penpot:penpot
 
 CMD ["/run.sh"]
