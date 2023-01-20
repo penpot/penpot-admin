@@ -59,13 +59,13 @@ class ProfileCreationForm(forms.ModelForm):
 
     def save(self, commit=True):
         profile = super().save(commit=False)
+
         profile_id = api.create_profile(self.cleaned_data["fullname"],
                                         self.cleaned_data["email"],
                                         self.cleaned_data["password1"])
         if profile_id is None:
             raise BadRequest("PREPL server not configured")
 
-        profile_id = uuid.UUID(profile_id)
         return models.Profile.objects.get(pk=profile_id)
 
 class ProfileChangeForm(forms.ModelForm):
